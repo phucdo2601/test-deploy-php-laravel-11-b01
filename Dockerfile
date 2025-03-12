@@ -14,18 +14,11 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy Laravel project files
+# Set working directory
 WORKDIR /var/www/html
-COPY . .
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Start PHP-FPM and Nginx
-CMD service php8.2-fpm start && nginx -g 'daemon off;'
 
 # Copy Laravel project files
-COPY . /var/www/html
+COPY . .
 
 # Ensure the required directories exist
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
