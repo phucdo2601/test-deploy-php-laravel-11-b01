@@ -23,3 +23,13 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 # Start PHP-FPM and Nginx
 CMD service php8.2-fpm start && nginx -g 'daemon off;'
+
+# Copy Laravel project files
+COPY . /var/www/html
+
+# Ensure the required directories exist
+RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Set correct ownership and permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
