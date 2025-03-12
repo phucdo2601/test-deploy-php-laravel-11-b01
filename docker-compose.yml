@@ -1,0 +1,46 @@
+version: "3.8"
+services:
+  server:
+    image: "nginx:latest"
+    ports:
+      - "8224:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - mysql
+      - node_env
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./dockerfiles/php.ini:/usr/local/etc/php/php.ini
+  mysql:
+    image: mysql:8.4.3
+    environment:
+      MYSQL_DATABASE: learnLarV11ProSetOnDockerB01
+      MYSQL_USER: lV11ProSetLarB01
+      MYSQL_PASSWORD: 12345678
+      MYSQL_ROOT_PASSWORD: 12345678
+    ports:
+      - "3571:3306"
+
+  composer:
+    build:
+      context: ./dockerfiles
+      dockerfile: composer.dockerfile
+    volumes:
+      - ./src:/var/www/html
+
+  node_env:
+    build:
+      context: .
+      dockerfile: dockerfiles/node.dockerfile
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./src:/var/www/html:delegated
+      - /var/www/html/node_modules

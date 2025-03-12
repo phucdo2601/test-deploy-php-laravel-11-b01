@@ -1,0 +1,15 @@
+Voi cach cai dat moi truong nhu trong file document-setup.txt, mot so cau lenh hay dung duoi day:
+
+1. Khi can chay start containers va build image de khong start laravel project:
+    - docker compose up -d --build service-name-build
+
+2.Khi run laravel project:
+    + docker compose exec php-service-name php command-syntax
+        + Ex: Run laravel project (php la service-name-build): docker compose exec php php artisan serve
+
+3. Khi muon cai dat mot thu vien moi:
+    + docker compose run --rm composer require lib-name
+    + docker compose exec php php artisan lib-name:install (if have)
+
+4. Khi muon khoi tao laravel project voi docker thi su dung cau lenh sau:
+    docker compose run --rm composer create-project --prefer-dist laravel/laravel your-app-name

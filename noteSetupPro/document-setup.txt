@@ -1,0 +1,246 @@
+In this article i will explain you step by step to dockerize your Laravel application
+
+We need to create three Application container MySql Database, Nginx Web Server, PHP Interpreter and utility container composer, laravel artisan and npm
+
+Step 1: Adding a Nginx container
+Create docker-compose.yaml file in the root path of your project folder and start adding services first of all we will add nginx server services
+
+nginx-server
+
+This is the container which will communicate with php container it acts as interpreter for php
+
+//copy paste following code inside docker-compose.yaml file
+
+version: "3.8"
+services:
+  server:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+Add a nginx folder and inside that folder create a file named nginx.conf and paste the following code
+
+
+  //copy paste following code inside nginx.conf
+
+  server {
+    listen 80;
+    index index.php index.html;
+    server_name localhost;
+    root /var/www/html/public;
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass php:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+  }
+Step 2: Adding a php container
+Add a folder name dockerfiles and in that folder create a docker file with the name php.dockerfile for the php container in order to build the image also create a src folder at root path
+
+docker-file
+
+//paste the following code inside php.dockerfile which is created inside dockerfiles folder
+FROM php:8.0-fpm
+
+WORKDIR /var/www/html
+
+RUN docker-php-ext-install pdo pdo_mysql
+When using Docker on Linux, you might face permission errors when adding a bind mount as shown in the next lecture. If you do, try these steps:
+
+Change the php.dockerfile so that it looks like that:
+
+FROM php:8.0-fpm
+
+WORKDIR /var/www/html
+
+COPY src .
+
+RUN docker-php-ext-install pdo pdo_mysql
+
+RUN addgroup -g 1000 laravel && adduser -G laravel -g laravel -s /bin/sh -D laravel
+
+USER laravel
+Update your docker-compose.yaml file with following code
+
+//update your docker-compose.yaml here container for php is added with bind volume which is mapped to the local folder src
+version: "3.8"
+services:
+  server:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - mysql
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+Step 2: Adding mysql container
+Here we will add mysql container inside docker-compose.yaml file also we will create env folders and inside that env folders create file with name mysql.env for the required configuration i’e username , password for mysql container
+
+mysql-env-file
+
+Copy paste following code inside env file which you created
+
+MYSQL_DATABASE = homestead;
+MYSQL_USER = homestead;
+MYSQL_PASSWORD = secret;
+MYSQL_ROOT_PASSWORD = secret;
+Update your docker-compose.yaml file with mysql container
+
+version: "3.8"
+services:
+  server:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - mysql
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+  mysql:
+    image: mysql:5.7
+    env_file:
+      - ./env/mysql.env
+Step 3: Adding a composer utility container to create laravel project
+Create composer.dockerfile inside dockerfiles folder in which we will be writing executable command to create laravel project and bind mount with src folder in our local folder
+
+mysql-env-file
+
+Copy paste the following code inside composer.dockerfile
+
+//copy paste following code inside composer.dockerfile
+
+FROM composer:latest
+
+WORKDIR /var/www/html
+
+ENTRYPOINT [ "composer", "--ignore-platform-reqs" ]
+When using Docker on Linux, you might face permission errors when adding a bind mount as shown in the next lecture. If you do
+
+Change the compose.dockerfile so that it looks like that:
+
+FROM composer:latest
+
+RUN addgroup -g 1000 laravel && adduser -G laravel -g laravel -s /bin/sh -D laravel
+
+USER laravel
+
+WORKDIR /var/www/html
+
+ENTRYPOINT [ "composer", "--ignore-platform-reqs" ]
+Update docker.compose.yaml file with composer container
+
+version: "3.8"
+services:
+  server:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - mysql
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+  mysql:
+    image: mysql:5.7
+    env_file:
+      - ./env/mysql.env
+  composer:
+    build:
+      context: ./dockerfiles
+      dockerfile: composer.dockerfile
+    volumes:
+      - ./src:/var/www/html
+Step 4: Create laravel application via composer utility container
+After finishing the setup for composer utility container we will run docker composer command to create laravel project using composer utility container we can run any specific container inside docker-compose.yaml via docker-compose command
+
+Go to your project folder and run following command in your terminal also make sure your docker is running in your computer
+
+//make sure you run the whole command including . at the end
+docker-compose run --rm composer create-project --prefer-dist laravel/laravel .
+docker-compose-create
+
+After executing above command you will see that laravel project has been created inside your local src folder
+
+Step 5: Updating .env file of the project inside src folder, updating docker-compose.yaml and running server container
+We should update the .env file for the project which is created inside src folder with the same exact configuration that we have mentioned in mysql.env file inside env folders
+
+Change the following configuration
+
+DB_HOST = mysql;
+DB_DATABASE = homestead;
+DB_USERNAME = homestead;
+DB_PASSWORD = secret;
+env-file
+
+Update docker-compose.yaml file which look similar to below
+
+version: "3.8"
+services:
+  server:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - mysql
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+  mysql:
+    image: mysql:5.7
+    env_file:
+      - ./env/mysql.env
+  composer:
+    build:
+      context: ./dockerfiles
+      dockerfile: composer.dockerfile
+    volumes:
+      - ./src:/var/www/html
+Run the below command to start php, mysql and server container
+
+ docker-compose up -d --build server
+You may face issue while pulling the mysql image from docker hub on Apple M1 processor so add this line under mysql services below image
+
+image: mysql: 5.7;
+platform: linux / amd64;
+env-file
+
+Open the url localhost:8000 to see the application running
