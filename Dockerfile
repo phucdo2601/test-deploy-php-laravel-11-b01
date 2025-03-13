@@ -1,3 +1,4 @@
+# Use the official PHP-FPM image
 FROM php:8.2-fpm
 
 # Install dependencies
@@ -11,18 +12,18 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Set working directory
-WORKDIR /var/www/html
-
 # Copy Laravel project files
+WORKDIR /var/www/html
 COPY . .
 
-# Ensure the required directories exist
+# Ensure required directories exist
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Set correct ownership and permissions
+# Set correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Expose port 10000 (Render default)
+EXPOSE 8223
+
+# Start PHP-FPM and Nginx
+CMD service php8.2-fpm start && nginx -g 'daemon off;'
