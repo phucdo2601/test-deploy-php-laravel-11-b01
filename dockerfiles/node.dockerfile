@@ -18,7 +18,7 @@ RUN yarn install
 COPY src/ .
 
 # Expose the port (if needed)
-EXPOSE 3002
+EXPOSE 3003
 
 # Run the application
 CMD ["yarn", "dev"]
