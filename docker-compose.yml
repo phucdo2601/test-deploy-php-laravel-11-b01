@@ -13,8 +13,8 @@ services:
       - node_env
   php:
     build:
-      context: ./dockerfiles
-      dockerfile: php.dockerfile
+      context: ./
+      dockerfile: Dockerfile
     volumes:
       - ./src:/var/www/html:delegated
       - ./dockerfiles/php.ini:/usr/local/etc/php/php.ini
